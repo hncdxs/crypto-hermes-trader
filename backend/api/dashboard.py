@@ -1,7 +1,7 @@
 """看板 API"""
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from ..core.websocket_manager import ws_manager
+from core.websocket_manager import ws_manager
 
 router = APIRouter()
 

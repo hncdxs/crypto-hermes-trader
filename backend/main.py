@@ -5,9 +5,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .core.config import settings
-from .core.plugin_loader import PluginLoader
-from .core.websocket_manager import ws_manager
+from core.config import settings
+from core.plugin_loader import PluginLoader
+from core.websocket_manager import ws_manager
 
 
 @asynccontextmanager
@@ -39,11 +39,11 @@ def create_app() -> FastAPI:
     )
 
     # 注册核心路由
-    from .api.init import router as init_router
-    from .api.strategies import router as strategies_router
-    from .api.traders import router as traders_router
-    from .api.dashboard import router as dashboard_router
-    from .api.plugins import router as plugins_router
+    from api.init import router as init_router
+    from api.strategies import router as strategies_router
+    from api.traders import router as traders_router
+    from api.dashboard import router as dashboard_router
+    from api.plugins import router as plugins_router
 
     app.include_router(init_router, prefix="/api/init", tags=["初始化"])
     app.include_router(strategies_router, prefix="/api/strategies", tags=["策略"])
