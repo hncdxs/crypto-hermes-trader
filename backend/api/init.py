@@ -1,6 +1,7 @@
 """项目初始化 API — 数据库操作版"""
 
 from uuid import uuid4
+import os
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -147,3 +148,47 @@ async def get_exchange_accounts(db: AsyncSession = Depends(get_db)):
     )
     rows = result.mappings().all()
     return {"accounts": [dict(row) for row in rows]}
+
+
+# ── POST /api/init/okx/test ──
+
+
+@router.post("/okx/test")
+async def test_okx_connection():
+    """测试 OKX MCP 是否可用 — 执行 npx 检查包是否已安装"""
+    try:
+        import subprocess
+        npx_bin = "/opt/bin/npx"
+        if not os.path.exists(npx_bin):
+            # fallback
+            result = subprocess.run(
+                ["which", "npx"], capture_output=True, text=True, timeout=5
+            )
+            npx_bin = result.stdout.strip() or "npx"
+
+        proc = subprocess.run(
+            [npx_bin, "--version"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if proc.returncode != 0:
+            return {"status": "error", "detail": f"npx 不可用: {proc.stderr.strip()}"}
+
+        # 尝试检查 okx-trade-mcp
+        check = subprocess.run(
+            [npx_bin, "-y", "@okx_ai/okx-trade-mcp@latest", "--help"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if check.returncode != 0:
+            # 也许只是 --help 未定义，尝试简单启动然后退出
+            return {
+                "status": "warning",
+                "detail": f"npx 可用但 okx-trade-mcp 可能有异常: {check.stderr.strip()[:200]}",
+            }
+
+        return {"status": "ok", "detail": "npx + okx-trade-mcp 可用"}
+    except FileNotFoundError:
+        return {"status": "error", "detail": "npx 未安装或路径不存在"}
+    except subprocess.TimeoutExpired:
+        return {"status": "error", "detail": "执行超时"}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}

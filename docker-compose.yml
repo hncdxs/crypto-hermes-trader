@@ -34,8 +34,7 @@ services:
       - /root/.hermes:/root/.hermes:rw
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /usr/bin/node:/usr/bin/node:ro
-      - /usr/bin/npx:/usr/bin/npx:ro
-      - /usr/lib/node_modules:/usr/lib/node_modules:ro
+      - /opt/bin:/opt/bin:ro
     environment:
       DATABASE_URL: postgresql+asyncpg://crypto:crypto_pass@postgres:5432/crypto_trader
     restart: unless-stopped
