@@ -4,6 +4,7 @@ import InitSetup from './pages/InitSetup';
 import Strategies from './pages/Strategies';
 import Traders from './pages/Traders';
 import Dashboard from './pages/Dashboard';
+import ExchangeManager from './pages/ExchangeManager';
 
 function App() {
   return (
@@ -12,9 +13,10 @@ function App() {
         {/* 侧边导航 */}
         <nav style={{ width: 200, padding: 20, borderRight: '1px solid #1e293b' }}>
           <h2 style={{ fontSize: 16, marginBottom: 20 }}>🤖 Crypto AI Trader</h2>
-          <NavLink to="/init" style={navStyle} className={({ isActive }) => isActive ? 'nav-active' : ''}>🚀 初始化</NavLink>
+          <NavLink to="/init" style={navStyle} className={({ isActive }) => isActive ? 'nav-active' : ''}>⚙️ 系统设置</NavLink>
           <NavLink to="/strategies" style={navStyle} className={({ isActive }) => isActive ? 'nav-active' : ''}>📝 策略</NavLink>
           <NavLink to="/traders" style={navStyle} className={({ isActive }) => isActive ? 'nav-active' : ''}>🤖 交易员</NavLink>
+          <NavLink to="/exchange" style={navStyle} className={({ isActive }) => isActive ? 'nav-active' : ''}>🏛️ 交易所</NavLink>
           <NavLink to="/dashboard" style={navStyle} className={({ isActive }) => isActive ? 'nav-active' : ''}>📊 看板</NavLink>
         </nav>
 
@@ -24,6 +26,7 @@ function App() {
             <Route path="/init" element={<InitSetup />} />
             <Route path="/strategies" element={<Strategies />} />
             <Route path="/traders" element={<Traders />} />
+            <Route path="/exchange" element={<ExchangeManager />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="*" element={<InitSetup />} />
           </Routes>

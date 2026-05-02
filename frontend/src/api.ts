@@ -12,14 +12,44 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
-// ── Init ──
 export const api = {
+  // ── Init ──
   getInitStatus: () => request<{ initialized: boolean }>('/api/init/status'),
   setupInit: (data: { llm_config: any; exchange_account: any }) =>
     request<{ status: string }>('/api/init/setup', { method: 'POST', body: JSON.stringify(data) }),
 
   getLLMConfigs: () => request<{ configs: any[] }>('/api/init/llm'),
+  createLLMConfig: (data: any) =>
+    request<any>('/api/init/llm', { method: 'POST', body: JSON.stringify(data) }),
+  updateLLMConfig: (id: string, data: any) =>
+    request<any>(`/api/init/llm/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteLLMConfig: (id: string) =>
+    request<any>(`/api/init/llm/${id}`, { method: 'DELETE' }),
   getExchangeAccounts: () => request<{ accounts: any[] }>('/api/init/exchange'),
+
+  // ── Hermes ──
+  getHermesStatus: () => request<any>('/api/init/hermes/status'),
+  startHermes: () => request<any>('/api/init/hermes/start', { method: 'POST' }),
+  stopHermes: () => request<any>('/api/init/hermes/stop', { method: 'POST' }),
+  chatWithHermes: (messages: string) =>
+    request<any>('/api/init/hermes/chat', { method: 'POST', body: JSON.stringify({ messages }) }),
+  listAgentConfigs: (trader_id?: string) =>
+    request<{ configs: any[] }>(`/api/init/agent-configs${trader_id ? `?trader_id=${trader_id}` : ''}`),
+  updateAgentConfig: (id: string, data: any) =>
+    request<any>(`/api/init/agent-configs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  // ── Exchange ──
+  listExchangeAccounts: () => request<{ accounts: any[] }>('/api/exchange'),
+  createExchangeAccount: (data: any) =>
+    request<any>('/api/exchange', { method: 'POST', body: JSON.stringify(data) }),
+  updateExchangeAccount: (id: string, data: any) =>
+    request<any>(`/api/exchange/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteExchangeAccount: (id: string) =>
+    request<any>(`/api/exchange/${id}`, { method: 'DELETE' }),
+  testExchangeConnection: (data: any) =>
+    request<any>('/api/exchange/test', { method: 'POST', body: JSON.stringify(data) }),
+  testSavedExchangeConnection: (id: string) =>
+    request<any>(`/api/exchange/${id}/test`, { method: 'POST' }),
 
   // ── Strategies ──
   listStrategies: () => request<any[]>('/api/strategies'),
