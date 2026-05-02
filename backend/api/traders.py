@@ -1,41 +1,363 @@
-"""交易员管理 API"""
+"""交易员管理 API
 
-from fastapi import APIRouter
+交易员 CRUD + 启停：
+- GET  /traders        列表（关联 strategy name）
+- POST /traders        新建
+- PUT  /traders/{id}   编辑
+- DELETE /traders/{id} 删除
+- POST /traders/{id}/start  启动
+- POST /traders/{id}/stop   停止
+"""
+
+import json
+from datetime import datetime, timezone
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.database import get_db
 
 router = APIRouter()
 
+# ──────────── Schemas ────────────
+
+
+class TraderCreate(BaseModel):
+    name: str
+    strategy_id: str
+    main_period: str = "5m"
+    ref_period: str = "1h"
+    scan_interval: str = "5m"
+    trade_type: str = "spot"
+    symbols: list[str] = Field(default_factory=list)
+    llm_config_id: str | None = None
+    exchange_account_id: str | None = None
+    executor_temp: float = 0.3
+    risk_temp: float = 0.3
+
+
+class TraderUpdate(BaseModel):
+    name: str | None = None
+    strategy_id: str | None = None
+    main_period: str | None = None
+    ref_period: str | None = None
+    scan_interval: str | None = None
+    trade_type: str | None = None
+    symbols: list[str] | None = None
+    llm_config_id: str | None = None
+    exchange_account_id: str | None = None
+    executor_temp: float | None = None
+    risk_temp: float | None = None
+
+
+class TraderOut(BaseModel):
+    id: str
+    name: str
+    strategy_id: str | None
+    strategy_name: str | None = None
+    main_period: str
+    ref_period: str
+    scan_interval: str
+    trade_type: str
+    symbols: list
+    llm_config_id: str | None
+    exchange_account_id: str | None
+    executor_temp: float
+    risk_temp: float
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+
+# ──────────── Helpers ────────────
+
+
+async def _ensure_trader_exists(db: AsyncSession, trader_id: str) -> dict:
+    """检查交易员是否存在并返回数据"""
+    row = (
+        await db.execute(
+            text("SELECT * FROM traders WHERE id = :id"), {"id": trader_id}
+        )
+    ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="交易员不存在")
+    return row._mapping
+
+
+async def _ensure_strategy_exists(db: AsyncSession, strategy_id: str) -> dict:
+    """检查策略是否存在"""
+    row = (
+        await db.execute(
+            text("SELECT id, name FROM strategies WHERE id = :id"),
+            {"id": strategy_id},
+        )
+    ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="策略不存在")
+    return row._mapping
+
+
+async def _create_default_agent_configs(
+    db: AsyncSession, trader_id: str, executor_temp: float, risk_temp: float
+) -> None:
+    """为指定 trader 创建 4 条默认 agent_config"""
+    agent_types = ["monitor", "master", "executor", "risk"]
+    temperatures = {
+        "monitor": 0.3,
+        "master": 0.3,
+        "executor": executor_temp,
+        "risk": risk_temp,
+    }
+    now = datetime.now(timezone.utc)
+    for agent_type in agent_types:
+        await db.execute(
+            text(
+                """INSERT INTO agent_configs
+                   (id, trader_id, agent_type, temperature, system_prompt, status, created_at)
+                   VALUES (:id, :trader_id, :agent_type, :temperature, '', 'idle', :created_at)"""
+            ),
+            {
+                "id": str(uuid4()),
+                "trader_id": trader_id,
+                "agent_type": agent_type,
+                "temperature": temperatures[agent_type],
+                "created_at": now,
+            },
+        )
+
+
+def _row_to_trader_out(row, strategy_name: str | None = None) -> dict:
+    """将数据库行转为 dict"""
+    symbols = row.symbols if row.symbols else []
+    if isinstance(symbols, str):
+        try:
+            symbols = json.loads(symbols)
+        except (json.JSONDecodeError, TypeError):
+            symbols = []
+
+    return {
+        "id": row.id,
+        "name": row.name,
+        "strategy_id": row.strategy_id,
+        "strategy_name": strategy_name,
+        "main_period": row.main_period,
+        "ref_period": row.ref_period,
+        "scan_interval": row.scan_interval,
+        "trade_type": row.trade_type,
+        "symbols": symbols,
+        "llm_config_id": row.llm_config_id,
+        "exchange_account_id": row.exchange_account_id,
+        "executor_temp": float(row.executor_temp) if row.executor_temp is not None else 0.3,
+        "risk_temp": float(row.risk_temp) if row.risk_temp is not None else 0.3,
+        "status": row.status,
+        "created_at": row.created_at,
+        "updated_at": row.updated_at,
+    }
+
+
+# ──────────── Routes ────────────
+
 
 @router.get("")
-async def list_traders():
-    """列出所有交易员"""
-    return {"traders": []}
+async def list_traders(
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    """列出所有交易员（关联 strategy name）"""
+    rows = (
+        await db.execute(
+            text(
+                """SELECT t.*, s.name AS strategy_name
+                   FROM traders t
+                   LEFT JOIN strategies s ON t.strategy_id = s.id
+                   ORDER BY t.updated_at DESC"""
+            )
+        )
+    ).fetchall()
+
+    result = []
+    for r in rows:
+        trader_dict = _row_to_trader_out(r, r.strategy_name)
+        result.append(trader_dict)
+    return result
 
 
-@router.post("")
-async def create_trader(data: dict):
-    """创建交易员"""
-    return {"id": "new-trader-id", "name": data.get("name")}
+@router.post("", status_code=201)
+async def create_trader(
+    data: TraderCreate,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """新建交易员
+
+    必填: name, strategy_id
+    可选: main_period, ref_period, scan_interval, trade_type, symbols,
+          llm_config_id, exchange_account_id, executor_temp, risk_temp
+
+    创建时自动生成 4 条 agent_config（monitor, master, executor, risk）
+    """
+    # 检查策略是否存在
+    await _ensure_strategy_exists(db, data.strategy_id)
+
+    trader_id = str(uuid4())
+    now = datetime.now(timezone.utc)
+
+    await db.execute(
+        text(
+            """INSERT INTO traders
+               (id, name, strategy_id, main_period, ref_period, scan_interval,
+                trade_type, symbols, llm_config_id, exchange_account_id,
+                executor_temp, risk_temp, status, created_at, updated_at)
+               VALUES
+               (:id, :name, :strategy_id, :main_period, :ref_period, :scan_interval,
+                :trade_type, :symbols::jsonb, :llm_config_id, :exchange_account_id,
+                :executor_temp, :risk_temp, 'stopped', :created_at, :updated_at)"""
+        ),
+        {
+            "id": trader_id,
+            "name": data.name,
+            "strategy_id": data.strategy_id,
+            "main_period": data.main_period,
+            "ref_period": data.ref_period,
+            "scan_interval": data.scan_interval,
+            "trade_type": data.trade_type,
+            "symbols": json.dumps(data.symbols),
+            "llm_config_id": data.llm_config_id,
+            "exchange_account_id": data.exchange_account_id,
+            "executor_temp": data.executor_temp,
+            "risk_temp": data.risk_temp,
+            "created_at": now,
+            "updated_at": now,
+        },
+    )
+
+    # 创建默认 agent_configs
+    await _create_default_agent_configs(
+        db, trader_id, data.executor_temp, data.risk_temp
+    )
+
+    return {
+        "id": trader_id,
+        "name": data.name,
+        "strategy_id": data.strategy_id,
+        "status": "stopped",
+    }
 
 
-@router.get("/{trader_id}")
-async def get_trader(trader_id: str):
-    """获取交易员详情"""
-    return {"id": trader_id}
+@router.put("/{trader_id}")
+async def update_trader(
+    trader_id: str,
+    data: TraderUpdate,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """编辑交易员"""
+    trader = await _ensure_trader_exists(db, trader_id)
+    now = datetime.now(timezone.utc)
 
+    # 如果 strategy_id 改变，检查新策略是否存在
+    new_strategy_id = data.strategy_id if data.strategy_id is not None else trader["strategy_id"]
+    if data.strategy_id is not None and data.strategy_id != trader["strategy_id"]:
+        await _ensure_strategy_exists(db, data.strategy_id)
 
-@router.post("/{trader_id}/start")
-async def start_trader(trader_id: str):
-    """启动交易员"""
-    return {"status": "started"}
+    # 构建动态 UPDATE
+    fields = {
+        "name": data.name,
+        "strategy_id": new_strategy_id,
+        "main_period": data.main_period,
+        "ref_period": data.ref_period,
+        "scan_interval": data.scan_interval,
+        "trade_type": data.trade_type,
+        "symbols": json.dumps(data.symbols) if data.symbols is not None else None,
+        "llm_config_id": data.llm_config_id,
+        "exchange_account_id": data.exchange_account_id,
+        "executor_temp": data.executor_temp,
+        "risk_temp": data.risk_temp,
+    }
 
+    # 只更新非 None 字段
+    set_parts = []
+    params = {"id": trader_id, "updated_at": now}
+    for col, val in fields.items():
+        if val is not None:
+            if col == "symbols":
+                set_parts.append(f"{col} = :{col}::jsonb")
+            else:
+                set_parts.append(f"{col} = :{col}")
+            params[col] = val
 
-@router.post("/{trader_id}/stop")
-async def stop_trader(trader_id: str):
-    """停止交易员"""
-    return {"status": "stopped"}
+    if not set_parts:
+        return {"id": trader_id, "status": "no_change"}
+
+    set_parts.append("updated_at = :updated_at")
+    sql = f"UPDATE traders SET {', '.join(set_parts)} WHERE id = :id"
+
+    await db.execute(text(sql), params)
+
+    return {"id": trader_id, "status": "updated"}
 
 
 @router.delete("/{trader_id}")
-async def delete_trader(trader_id: str):
-    """删除交易员"""
-    return {"status": "deleted"}
+async def delete_trader(
+    trader_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """删除交易员（级联删除关联的 agent_configs、decisions、positions）"""
+    await _ensure_trader_exists(db, trader_id)
+
+    # agent_configs 和 decisions/positions 有 ON DELETE CASCADE，只需删除 trader
+    await db.execute(
+        text("DELETE FROM traders WHERE id = :id"), {"id": trader_id}
+    )
+
+    return {"status": "deleted", "id": trader_id}
+
+
+@router.post("/{trader_id}/start")
+async def start_trader(
+    trader_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """启动交易员（更新状态为 running）
+
+    注意：实际 cron 注册、子代理调度等后续实现，当前仅更新状态字段。
+    """
+    trader = await _ensure_trader_exists(db, trader_id)
+
+    if trader["status"] == "running":
+        return {"id": trader_id, "status": "running", "message": "交易员已在运行中"}
+
+    now = datetime.now(timezone.utc)
+    await db.execute(
+        text(
+            "UPDATE traders SET status = 'running', updated_at = :updated_at WHERE id = :id"
+        ),
+        {"id": trader_id, "updated_at": now},
+    )
+
+    return {"id": trader_id, "status": "running"}
+
+
+@router.post("/{trader_id}/stop")
+async def stop_trader(
+    trader_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """停止交易员（更新状态为 stopped）
+
+    注意：实际 cron 注销等后续实现，当前仅更新状态字段。
+    """
+    trader = await _ensure_trader_exists(db, trader_id)
+
+    if trader["status"] == "stopped":
+        return {"id": trader_id, "status": "stopped", "message": "交易员已停止"}
+
+    now = datetime.now(timezone.utc)
+    await db.execute(
+        text(
+            "UPDATE traders SET status = 'stopped', updated_at = :updated_at WHERE id = :id"
+        ),
+        {"id": trader_id, "updated_at": now},
+    )
+
+    return {"id": trader_id, "status": "stopped"}
