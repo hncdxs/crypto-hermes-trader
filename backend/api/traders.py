@@ -423,33 +423,35 @@ async def start_trader(
     )
     await db.commit()
 
-    # 6. 执行 Hermes chat（后台异步，不阻塞返回）
-    # 使用包装函数确保异常被捕获
-    async def _run_hermes_wrapper():
-        try:
-            hermes_path = find_hermes()
-            if not hermes_path:
-                logger.error("Hermes 未安装，无法执行策略")
-                return
-            result = await run_hermes_chat(full_prompt, trader_id=trader_id, timeout=180)
-            # 尝试从 Hermes 输出中解析决策并写入 decisions 表（用新 session）
-            if result["success"] and result.get("output"):
-                from core.database import async_session_factory
-                async with async_session_factory() as new_db:
-                    await _parse_and_save_decision(new_db, trader_id, result["output"])
-        except Exception as e:
-            logger.error(f"交易员启动 Hermes 执行失败: {e}", exc_info=True)
+    # 6. 执行 Hermes chat（后台线程，不阻塞 API 响应）
+    import threading
 
-    import asyncio
-    task = asyncio.ensure_future(_run_hermes_wrapper())
-    # 延迟一小段时间检查 task 状态
-    await asyncio.sleep(0.1)
-    if task.done():
-        exc = task.exception()
-        if exc:
-            logger.error(f"Hermes 执行 task 异常: {exc}")
-    else:
-        logger.info(f"Hermes 执行已开始 (trader={trader_id})")
+    def _run_sync():
+        """在线程中同步运行 Hermes chat"""
+        try:
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                result = loop.run_until_complete(
+                    run_hermes_chat(full_prompt, trader_id=trader_id, timeout=180)
+                )
+                if result["success"] and result.get("output"):
+                    from core.database import async_session_factory
+                    async def _save():
+                        async with async_session_factory() as ndb:
+                            await _parse_and_save_decision(ndb, trader_id, result["output"])
+                    loop2 = asyncio.new_event_loop()
+                    loop2.run_until_complete(_save())
+                    loop2.close()
+            finally:
+                loop.close()
+        except Exception as e:
+            logger.error(f"交易员启动 Hermes 线程异常: {e}", exc_info=True)
+
+    thread = threading.Thread(target=_run_sync, daemon=True)
+    thread.start()
+    logger.info(f"Hermes 线程已启动 (trader={trader_id})")
 
     return {
         "id": trader_id,
