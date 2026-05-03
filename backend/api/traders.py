@@ -13,6 +13,8 @@ import json
 from datetime import datetime
 from uuid import uuid4
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import text
@@ -20,7 +22,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import Row
 
 from core.database import get_db
-from core.hermes_runner import run_hermes_chat, get_hermes_status
+from core.hermes_runner import run_hermes_chat, get_hermes_status, find_hermes
+
+logger = logging.getLogger("traders_router")
 
 router = APIRouter()
 
@@ -420,8 +424,27 @@ async def start_trader(
     await db.commit()
 
     # 6. 执行 Hermes chat（后台异步，不阻塞返回）
+    # 使用包装函数确保异常被捕获
+    async def _run_hermes_wrapper():
+        try:
+            hermes_path = find_hermes()
+            if not hermes_path:
+                logger.error("Hermes 未安装，无法执行策略")
+                return
+            await run_hermes_chat(full_prompt, trader_id=trader_id, timeout=180)
+        except Exception as e:
+            logger.error(f"交易员启动 Hermes 执行失败: {e}", exc_info=True)
+
     import asyncio
-    asyncio.create_task(run_hermes_chat(full_prompt, trader_id=trader_id, timeout=180))
+    task = asyncio.ensure_future(_run_hermes_wrapper())
+    # 延迟一小段时间检查 task 状态
+    await asyncio.sleep(0.1)
+    if task.done():
+        exc = task.exception()
+        if exc:
+            logger.error(f"Hermes 执行 task 异常: {exc}")
+    else:
+        logger.info(f"Hermes 执行已开始 (trader={trader_id})")
 
     return {
         "id": trader_id,
