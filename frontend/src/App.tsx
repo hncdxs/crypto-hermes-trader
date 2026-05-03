@@ -82,7 +82,7 @@ function App() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  fontSize: 13,
+                  fontSize: 14,
                   color: isActive ? C.cyan : C.muted,
                   fontWeight: isActive ? 600 : 400,
                   transition: 'color 0.15s',

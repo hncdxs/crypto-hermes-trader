@@ -1,10 +1,11 @@
 /* ═══════════════════════════════════════════════
-   Crypto AI Trader — 暗色终端监控主题
+   Crypto AI Trader — 暗色终端监控主题 (加强版)
    背景: #0a0a0f · 卡片: #12121a · 边框: #1e1e2e
    主色: #6c5ce7 (紫) + #00cec9 (青)
+   ※ 字体加大加粗, 对比度增强, 适合阅读
    ═══════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -13,16 +14,17 @@
 }
 
 html {
-  font-size: 14px;
+  font-size: 15px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 500;
   background: #0a0a0f;
-  color: #cdd6f4;
-  line-height: 1.5;
+  color: #e0e4f0;
+  line-height: 1.6;
   min-height: 100vh;
   overflow-x: hidden;
 }
@@ -33,45 +35,48 @@ body {
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: #0a0a0f;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e1e2e;
-  border-radius: 3px;
+  background: #2a2a3e;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #313244;
+  background: #44445e;
 }
 
 /* ── Input / Select / Textarea ── */
 input, select, textarea, button {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: #6c5ce7 !important;
-  box-shadow: 0 0 0 1px rgba(108, 92, 231, 0.25);
+  box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.3);
 }
 
 /* ── Selection ── */
 ::selection {
-  background: rgba(108, 92, 231, 0.35);
-  color: #cdd6f4;
+  background: rgba(108, 92, 231, 0.45);
+  color: #ffffff;
 }
 
 /* ── Links ── */
 a {
   color: #00cec9;
+  font-weight: 600;
   text-decoration: none;
 }
 a:hover {
   color: #6c5ce7;
+  text-decoration: underline;
 }
 
 /* ── Tables ── */
@@ -81,21 +86,38 @@ table {
 }
 th {
   text-align: left;
-  font-weight: 500;
-  color: #585b70;
-  font-size: 12px;
-  padding: 8px 12px;
+  font-weight: 700;
+  color: #6c7086;
+  font-size: 13px;
+  padding: 10px 14px;
   border-bottom: 1px solid #1e1e2e;
   white-space: nowrap;
+  letter-spacing: 0.3px;
 }
 td {
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-bottom: 1px solid #1e1e2e;
-  font-size: 13px;
-  color: #cdd6f4;
+  font-size: 14px;
+  font-weight: 500;
+  color: #e0e4f0;
 }
 tr:hover td {
-  background: rgba(108, 92, 231, 0.04);
+  background: rgba(108, 92, 231, 0.06);
+}
+
+/* ── Code blocks ── */
+code, pre {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+pre {
+  background: #0d0d14;
+  border: 1px solid #1e1e2e;
+  border-radius: 4px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  line-height: 1.5;
 }
 
 /* ── Animation ── */
@@ -131,13 +153,13 @@ tr:hover td {
 
 /* ── Progress bar ── */
 .progress-bar {
-  height: 4px;
-  border-radius: 2px;
+  height: 6px;
+  border-radius: 3px;
   background: #1e1e2e;
   overflow: hidden;
 }
 .progress-bar-fill {
   height: 100%;
-  border-radius: 2px;
+  border-radius: 3px;
   transition: width 0.4s ease;
 }

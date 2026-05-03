@@ -110,7 +110,7 @@ export default function Chat() {
         <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 16 }}>💬</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>与 Hermes 对话</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>与 Hermes 对话</span>
           </div>
           {messages.length > 0 && (
             <button
@@ -138,7 +138,7 @@ export default function Chat() {
                       border: `1px solid ${C.border}`,
                       borderRadius: 6,
                       color: C.dim,
-                      fontSize: 12,
+                      fontSize: 13,
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'border-color 0.15s',
@@ -167,7 +167,7 @@ export default function Chat() {
               <div style={{
                 padding: '10px 14px',
                 borderRadius: 10,
-                fontSize: 13,
+                fontSize: 14,
                 lineHeight: 1.6,
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
@@ -183,7 +183,7 @@ export default function Chat() {
           ))}
 
           {loading && (
-            <div style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, color: C.muted, fontSize: 12, padding: '10px 14px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, borderBottomLeftRadius: 2 }}>
+            <div style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, color: C.muted, fontSize: 13, padding: '10px 14px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, borderBottomLeftRadius: 2 }}>
               <span className="animate-blink" style={{ fontSize: 16 }}>🤖</span>
               <span>思考中<span className="animate-blink">...</span></span>
             </div>
@@ -206,7 +206,7 @@ export default function Chat() {
               border: `1px solid ${C.border}`,
               borderRadius: 6,
               color: C.text,
-              fontSize: 13,
+              fontSize: 14,
               outline: 'none',
             }}
           />
@@ -219,7 +219,7 @@ export default function Chat() {
               border: 'none',
               borderRadius: 6,
               color: '#fff',
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 600,
               cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
               opacity: loading || !input.trim() ? 0.5 : 1,
@@ -233,8 +233,8 @@ export default function Chat() {
       {/* ═══ 右侧 — 思维链展开面板 ═══ */}
       <div style={{ flex: '0 0 40%', display: 'flex', flexDirection: 'column', border: `1px solid ${C.border}`, borderRadius: 8, background: C.card, overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 13 }}>🧠</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>思维链展开</span>
+          <span style={{ fontSize: 14 }}>🧠</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>思维链展开</span>
           <span style={{ fontSize: 10, color: C.muted, marginLeft: 'auto' }}>
             {toolCalls.length > 0 ? `${toolCalls.length} 个工具调用` : '等待对话...'}
           </span>

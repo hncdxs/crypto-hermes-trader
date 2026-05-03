@@ -81,7 +81,7 @@ const inputBase: React.CSSProperties = {
   border: `1px solid ${C.border}`,
   borderRadius: 6,
   color: C.text,
-  fontSize: 13,
+  fontSize: 14,
   outline: 'none',
   boxSizing: 'border-box',
 };
@@ -102,7 +102,7 @@ const btnS: React.CSSProperties = {
   borderRadius: 6,
   color: C.text,
   cursor: 'pointer',
-  fontSize: 12,
+  fontSize: 13,
   fontWeight: 500,
   transition: 'all 0.15s',
 };
@@ -234,7 +234,7 @@ export default function Strategies() {
       {mode === 'list' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
           {strategies.length === 0 && (
-            <div style={{ color: C.muted, fontSize: 13, textAlign: 'center', padding: 40, gridColumn: '1 / -1' }}>暂无策略，点击「➕ 新建策略」开始</div>
+            <div style={{ color: C.muted, fontSize: 14, textAlign: 'center', padding: 40, gridColumn: '1 / -1' }}>暂无策略，点击「➕ 新建策略」开始</div>
           )}
           {strategies.map((s, idx) => (
             <div
@@ -298,15 +298,15 @@ export default function Strategies() {
               </div>
 
               {indicators.length === 0 && (
-                <div style={{ color: C.muted, fontSize: 12, textAlign: 'center', padding: 20 }}>暂无指标，点击上方添加</div>
+                <div style={{ color: C.muted, fontSize: 13, textAlign: 'center', padding: 20 }}>暂无指标，点击上方添加</div>
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {indicators.map((ind, idx) => (
                   <div key={idx} className="animate-slide" style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 6, padding: '8px 10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: C.cyan }}>{ind.name}</span>
-                      <span onClick={() => removeIndicator(idx)} style={{ color: C.red, cursor: 'pointer', fontSize: 12 }}>✕</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: C.cyan }}>{ind.name}</span>
+                      <span onClick={() => removeIndicator(idx)} style={{ color: C.red, cursor: 'pointer', fontSize: 13 }}>✕</span>
                     </div>
                     {Object.entries(ind.params).map(([key, val]) => (
                       <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
@@ -353,7 +353,7 @@ export default function Strategies() {
                     background: 'transparent',
                     border: 'none',
                     color: C.text,
-                    fontSize: 13,
+                    fontSize: 14,
                     lineHeight: '20px',
                     fontFamily: "'JetBrains Mono', 'Courier New', monospace",
                     resize: 'none',
@@ -401,7 +401,7 @@ export default function Strategies() {
         <div style={overlay} onClick={() => setShowDeleteConfirm(false)}>
           <div style={dialog} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: C.text }}>🗑️ 确认删除</h3>
-            <p style={{ color: C.muted, fontSize: 12, marginBottom: 12, lineHeight: 1.6 }}>
+            <p style={{ color: C.muted, fontSize: 13, marginBottom: 12, lineHeight: 1.6 }}>
               确定要删除「<span style={{ color: C.text }}>{selected?.name}</span>」吗？<br/>如果策略正在使用中，删除将被禁止。
             </p>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>

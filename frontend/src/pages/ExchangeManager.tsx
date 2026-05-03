@@ -64,7 +64,7 @@ function fmtTime(t: string): string {
 
 const inputBase: React.CSSProperties = {
   width: '100%', padding: '7px 10px', background: C.bg, border: `1px solid ${C.border}`,
-  borderRadius: 6, color: C.text, fontSize: 13, outline: 'none', boxSizing: 'border-box',
+  borderRadius: 6, color: C.text, fontSize: 14, outline: 'none', boxSizing: 'border-box',
 };
 
 const labelS: React.CSSProperties = {
@@ -74,7 +74,7 @@ const labelS: React.CSSProperties = {
 
 const btnS: React.CSSProperties = {
   padding: '7px 16px', background: C.card, border: `1px solid ${C.border}`,
-  borderRadius: 6, color: C.text, cursor: 'pointer', fontSize: 12, fontWeight: 500,
+  borderRadius: 6, color: C.text, cursor: 'pointer', fontSize: 13, fontWeight: 500,
   transition: 'all 0.15s',
 };
 
@@ -245,12 +245,12 @@ export default function ExchangeManager() {
 
       {/* ═══ 表格 ═══ */}
       {loading ? (
-        <div style={{ color: C.muted, fontSize: 13, textAlign: 'center', padding: 40 }}>⏳ 加载中...</div>
+        <div style={{ color: C.muted, fontSize: 14, textAlign: 'center', padding: 40 }}>⏳ 加载中...</div>
       ) : accounts.length === 0 ? (
-        <div style={{ color: C.muted, fontSize: 13, textAlign: 'center', padding: 60 }}>
+        <div style={{ color: C.muted, fontSize: 14, textAlign: 'center', padding: 60 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🏛️</div>
           <div>暂无交易所账户</div>
-          <div style={{ fontSize: 12, marginTop: 8, color: C.dim }}>点击上方「➕ 添加账户」开始</div>
+          <div style={{ fontSize: 13, marginTop: 8, color: C.dim }}>点击上方「➕ 添加账户」开始</div>
         </div>
       ) : (
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden' }}>
@@ -268,8 +268,8 @@ export default function ExchangeManager() {
             <tbody>
               {accounts.map((a) => (
                 <tr key={a.id} className="animate-fade">
-                  <td style={{ padding: '10px 12px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` }}>{a.name}</td>
-                  <td style={{ padding: '10px 12px', fontSize: 12, borderBottom: `1px solid ${C.border}` }}>
+                  <td style={{ padding: '10px 12px', fontSize: 14, color: C.text, borderBottom: `1px solid ${C.border}` }}>{a.name}</td>
+                  <td style={{ padding: '10px 12px', fontSize: 13, borderBottom: `1px solid ${C.border}` }}>
                     <span style={{
                       color: a.type === 'live' ? C.red : C.green,
                       background: a.type === 'live' ? `${C.red}12` : `${C.green}12`,
@@ -278,13 +278,13 @@ export default function ExchangeManager() {
                       {a.type === 'live' ? '🔴 实盘' : '🟢 模拟'}
                     </span>
                   </td>
-                  <td style={{ padding: '10px 12px', fontSize: 12, color: C.dim, borderBottom: `1px solid ${C.border}` }}>{a.site}</td>
-                  <td style={{ padding: '10px 12px', fontSize: 12, color: C.muted, borderBottom: `1px solid ${C.border}` }}>{a.is_default ? '✅' : '-'}</td>
-                  <td style={{ padding: '10px 12px', fontSize: 12, color: C.dim, fontFamily: 'monospace', borderBottom: `1px solid ${C.border}` }}>{fmtTime(a.created_at)}</td>
-                  <td style={{ padding: '10px 12px', fontSize: 12, textAlign: 'right', borderBottom: `1px solid ${C.border}` }}>
-                    <button onClick={() => openEdit(a)} style={{ background: 'none', border: 'none', color: C.cyan, cursor: 'pointer', fontSize: 13, marginRight: 8 }} title="编辑">✏️</button>
-                    <button onClick={() => handleTestSaved(a.id)} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: 13, marginRight: 8 }} title="测试连接">🔌</button>
-                    <button onClick={() => handleDelete(a.id, a.name)} style={{ background: 'none', border: 'none', color: C.red, cursor: 'pointer', fontSize: 13 }} title="删除">🗑️</button>
+                  <td style={{ padding: '10px 12px', fontSize: 13, color: C.dim, borderBottom: `1px solid ${C.border}` }}>{a.site}</td>
+                  <td style={{ padding: '10px 12px', fontSize: 13, color: C.muted, borderBottom: `1px solid ${C.border}` }}>{a.is_default ? '✅' : '-'}</td>
+                  <td style={{ padding: '10px 12px', fontSize: 13, color: C.dim, fontFamily: 'monospace', borderBottom: `1px solid ${C.border}` }}>{fmtTime(a.created_at)}</td>
+                  <td style={{ padding: '10px 12px', fontSize: 13, textAlign: 'right', borderBottom: `1px solid ${C.border}` }}>
+                    <button onClick={() => openEdit(a)} style={{ background: 'none', border: 'none', color: C.cyan, cursor: 'pointer', fontSize: 14, marginRight: 8 }} title="编辑">✏️</button>
+                    <button onClick={() => handleTestSaved(a.id)} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: 14, marginRight: 8 }} title="测试连接">🔌</button>
+                    <button onClick={() => handleDelete(a.id, a.name)} style={{ background: 'none', border: 'none', color: C.red, cursor: 'pointer', fontSize: 14 }} title="删除">🗑️</button>
                   </td>
                 </tr>
               ))}

@@ -194,7 +194,7 @@ export default function Dashboard() {
       <div style={s.section}>
         <div style={{ ...s.label, marginBottom: 10 }}>📡 运行中交易员</div>
         {traders.length === 0 ? (
-          <div style={{ color: C.muted, fontSize: 12, textAlign: 'center', padding: '20px 0' }}>
+          <div style={{ color: C.muted, fontSize: 14, textAlign: 'center', padding: '20px 0' }}>
             暂无运行中的交易员
           </div>
         ) : (
@@ -213,7 +213,7 @@ export default function Dashboard() {
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${C.purple}, ${C.cyan})` }} />
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{t.name}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{t.name}</span>
                   <span style={{ fontSize: 10, color: statusColor(t.status), background: `${statusColor(t.status)}15`, padding: '1px 6px', borderRadius: 3, border: `1px solid ${statusColor(t.status)}30` }}>
                     {t.status === 'running' ? '● 运行中' : '● 已停止'}
                   </span>
@@ -239,11 +239,11 @@ export default function Dashboard() {
       <div style={s.section}>
         <div style={{ ...s.label, marginBottom: 10 }}>⎯ Hermes 思维链实时日志 ⎯</div>
         {thinkingLogs.length === 0 ? (
-          <div style={{ color: C.muted, fontSize: 12, textAlign: 'center', padding: '20px 0' }}>
+          <div style={{ color: C.muted, fontSize: 14, textAlign: 'center', padding: '20px 0' }}>
             暂无思维链日志
           </div>
         ) : (
-          <div style={{ maxHeight: 240, overflowY: 'auto', fontSize: 12, fontFamily: 'monospace', lineHeight: 1.7 }}>
+          <div style={{ maxHeight: 240, overflowY: 'auto', fontSize: 14, fontFamily: 'monospace', lineHeight: 1.7 }}>
             {thinkingLogs.map((log) => (
               <div key={log.id}>
                 <div
@@ -294,7 +294,7 @@ export default function Dashboard() {
           <span style={{ fontSize: 10, color: C.muted }}>最近 10 条 · 每 10 秒自动刷新</span>
         </div>
         {decisions.length === 0 ? (
-          <div style={{ color: C.muted, fontSize: 12, textAlign: 'center', padding: '20px 0' }}>
+          <div style={{ color: C.muted, fontSize: 14, textAlign: 'center', padding: '20px 0' }}>
             暂无决策数据
           </div>
         ) : (
@@ -312,7 +312,7 @@ export default function Dashboard() {
               <tbody>
                 {decisions.map((d) => (
                   <tr key={d.id} className="animate-fade">
-                    <td style={{ fontSize: 12, color: C.muted, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                    <td style={{ fontSize: 14, color: C.muted, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
                       {fmtTimeShort(d.created_at)}
                     </td>
                     <td style={{ fontWeight: 600, color: C.text }}>
@@ -323,7 +323,7 @@ export default function Dashboard() {
                       <span style={{
                         color: signalColor(d.signal),
                         fontWeight: 600,
-                        fontSize: 12,
+                        fontSize: 14,
                         background: `${signalColor(d.signal)}12`,
                         padding: '2px 8px',
                         borderRadius: 4,
@@ -342,7 +342,7 @@ export default function Dashboard() {
                         <span style={{ fontSize: 11, color: C.muted, fontFamily: 'monospace', minWidth: 30 }}>{d.confidence}%</span>
                       </div>
                     </td>
-                    <td style={{ fontSize: 12, color: C.dim, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <td style={{ fontSize: 14, color: C.dim, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {d.master_chain?.slice(0, 80) || '-'}
                     </td>
                   </tr>

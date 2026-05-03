@@ -70,12 +70,12 @@ const labelS: React.CSSProperties = {
 
 const inputBase: React.CSSProperties = {
   width: '100%', padding: '7px 10px', background: C.bg, border: `1px solid ${C.border}`,
-  borderRadius: 6, color: C.text, fontSize: 13, outline: 'none', boxSizing: 'border-box',
+  borderRadius: 6, color: C.text, fontSize: 14, outline: 'none', boxSizing: 'border-box',
 };
 
 const btnS: React.CSSProperties = {
   padding: '7px 16px', background: C.card, border: `1px solid ${C.border}`,
-  borderRadius: 6, color: C.text, cursor: 'pointer', fontSize: 12, fontWeight: 500,
+  borderRadius: 6, color: C.text, cursor: 'pointer', fontSize: 13, fontWeight: 500,
   transition: 'all 0.15s',
 };
 
@@ -131,15 +131,15 @@ export default function Traders() {
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${C.border}` }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>🤖 交易员列表</span>
-        <a href="#/strategies" style={{ fontSize: 12, color: C.purple }}>需要先创建策略？</a>
+        <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>🤖 交易员列表</span>
+        <a href="#/strategies" style={{ fontSize: 13, color: C.purple }}>需要先创建策略？</a>
       </div>
 
       {traders.length === 0 ? (
-        <div style={{ color: C.muted, fontSize: 13, textAlign: 'center', padding: 60 }}>
+        <div style={{ color: C.muted, fontSize: 14, textAlign: 'center', padding: 60 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🤖</div>
           <div>暂无交易员</div>
-          <div style={{ fontSize: 12, marginTop: 8 }}>请先创建策略后再创建交易员</div>
+          <div style={{ fontSize: 13, marginTop: 8 }}>请先创建策略后再创建交易员</div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 10 }}>
@@ -210,7 +210,7 @@ export default function Traders() {
               {/* Expanded details */}
               {expandedId === t.id && (
                 <div style={{ padding: '0 12px 12px', borderTop: `1px solid ${C.border}`, marginTop: 0 }}>
-                  <div style={{ fontSize: 12, color: C.muted, lineHeight: 2 }}>
+                  <div style={{ fontSize: 13, color: C.muted, lineHeight: 2 }}>
                     <div><span style={{ color: C.muted }}>⏱ 扫描周期:</span> <span style={{ color: C.text }}>{t.scan_interval}</span></div>
                     <div><span style={{ color: C.muted }}>📊 主周期:</span> <span style={{ color: C.text }}>{t.main_period}</span></div>
                     <div><span style={{ color: C.muted }}>📈 参考周期:</span> <span style={{ color: C.text }}>{t.ref_period}</span></div>
