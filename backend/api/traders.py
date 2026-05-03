@@ -431,7 +431,12 @@ async def start_trader(
             if not hermes_path:
                 logger.error("Hermes 未安装，无法执行策略")
                 return
-            await run_hermes_chat(full_prompt, trader_id=trader_id, timeout=180)
+            result = await run_hermes_chat(full_prompt, trader_id=trader_id, timeout=180)
+            # 尝试从 Hermes 输出中解析决策并写入 decisions 表（用新 session）
+            if result["success"] and result.get("output"):
+                from core.database import async_session_factory
+                async with async_session_factory() as new_db:
+                    await _parse_and_save_decision(new_db, trader_id, result["output"])
         except Exception as e:
             logger.error(f"交易员启动 Hermes 执行失败: {e}", exc_info=True)
 
@@ -475,3 +480,82 @@ async def stop_trader(
     await db.commit()
 
     return {"id": trader_id, "status": "stopped"}
+
+
+async def _parse_and_save_decision(db: AsyncSession, trader_id: str, hermes_output: str):
+    """从 Hermes 输出中解析决策信号并写入 decisions 表"""
+    import re
+    from uuid import uuid4
+
+    try:
+        # 获取 trader 信息
+        trader = (await db.execute(
+            text("SELECT strategy_id, symbols FROM traders WHERE id = :id"),
+            {"id": trader_id},
+        )).fetchone()
+        if not trader:
+            return
+
+        strategy_id = trader.strategy_id
+        symbols = trader.symbols
+        if isinstance(symbols, str):
+            try:
+                symbols = json.loads(symbols)
+            except Exception:
+                symbols = []
+        symbol = symbols[0] if symbols else "BTC-USDT"
+
+        # 从输出中提取信号
+        signal = "hold"
+        confidence = 0
+        reasoning = hermes_output
+
+        # 匹配 SIGNAL 行
+        m = re.search(r'SIGNAL[:\s]+(long|short|hold|buy|sell|close)', hermes_output, re.IGNORECASE)
+        if m:
+            raw = m.group(1).lower()
+            signal_map = {"long": "long", "buy": "long", "short": "short", "sell": "short", "close": "close", "hold": "hold"}
+            signal = signal_map.get(raw, "hold")
+
+        # 匹配置信度
+        m2 = re.search(r'confidence[:\s]+([0-9.]+)', hermes_output, re.IGNORECASE)
+        if m2:
+            confidence = min(float(m2.group(1)), 100)
+
+        # 匹配价格
+        price = None
+        m3 = re.search(r'price[:\s]*\$?([0-9,.]+)', hermes_output, re.IGNORECASE)
+        if m3:
+            try:
+                price = float(m3.group(1).replace(",", ""))
+            except Exception:
+                pass
+
+        now = datetime.utcnow()
+        await db.execute(
+            text("""
+                INSERT INTO decisions (id, trader_id, strategy_id, symbol, signal, confidence,
+                    master_chain, decision_chain, created_at)
+                VALUES (:id, :trader_id, :strategy_id, :symbol, :signal, :confidence,
+                    :master_chain, :decision_chain, :created_at)
+            """),
+            {
+                "id": str(uuid4()),
+                "trader_id": trader_id,
+                "strategy_id": strategy_id,
+                "symbol": symbol,
+                "signal": signal,
+                "confidence": confidence,
+                "master_chain": hermes_output[:5000],
+                "decision_chain": json.dumps({
+                    "output_snippet": hermes_output[:1000],
+                    "price": price,
+                }),
+                "created_at": now,
+            }
+        )
+        # Also create a session for save
+        await db.commit()
+        logger.info(f"决策已保存: {symbol} {signal} ({confidence}%)")
+    except Exception as e:
+        logger.warning(f"解析 Hermes 输出保存决策失败: {e}")
