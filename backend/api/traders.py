@@ -374,7 +374,7 @@ async def start_trader(
         if llm:
             llm_info = f"AI 模型: {llm.provider}/{llm.model}"
 
-    # 4. 构造完整策略 prompt
+    # 4. 构造完整策略 prompt（附带行情数据）
     symbols = trader["symbols"]
     if isinstance(symbols, str):
         try:
@@ -389,8 +389,62 @@ async def start_trader(
         except (json.JSONDecodeError, TypeError):
             indicators = []
 
-    full_prompt = f"""你是这个交易系统的 AI 大脑（Hermes Agent）。
-现在需要执行一个交易策略，按以下步骤操作：
+    # 预先获取行情数据（ccxt 直连，不通过 Hermes）
+    market_data_str = "（行情数据获取失败）"
+    try:
+        import ccxt.async_support as ccxt_async
+
+        if exchange_account_id:
+            ex_row = (await db.execute(
+                text("SELECT api_key, secret_key, passphrase FROM exchange_accounts WHERE id = :id"),
+                {"id": exchange_account_id},
+            )).fetchone()
+            if ex_row and symbols:
+                okx = ccxt_async.okx({
+                    "apiKey": ex_row.api_key,
+                    "secret": ex_row.secret_key,
+                    "password": ex_row.passphrase,
+                })
+                okx.set_sandbox_mode(True)
+                symbol_ccxt = symbols[0].replace("-", "/")
+                ohlcv = await okx.fetch_ohlcv(symbol_ccxt, timeframe=trader["main_period"], limit=50)
+                ticker = await okx.fetch_ticker(symbol_ccxt)
+                await okx.close()
+
+                if ohlcv:
+                    closes = [c[4] for c in ohlcv]
+                    ema12 = sum(closes[-12:]) / min(12, len(closes)) if len(closes) >= 12 else 0
+                    ema26 = sum(closes[-26:]) / min(26, len(closes)) if len(closes) >= 26 else 0
+                    rsi_period = 14
+                    if len(closes) > rsi_period:
+                        gains, losses = 0, 0
+                        for i in range(-rsi_period, 0):
+                            diff = closes[i] - closes[i - 1]
+                            if diff > 0:
+                                gains += diff
+                            else:
+                                losses -= diff
+                        avg_gain = gains / rsi_period
+                        avg_loss = losses / rsi_period
+                        rsi = 100 - (100 / (1 + avg_gain / avg_loss)) if avg_loss > 0 else 100
+                    else:
+                        rsi = 50
+
+                    market_data_str = (
+                        f"最新价格: ${ticker['last']:.2f}\n"
+                        f"24h最高: ${ticker['high']:.2f}\n"
+                        f"24h最低: ${ticker['low']:.2f}\n"
+                        f"24h成交量: {ticker['baseVolume']:.4f}\n"
+                        f"EMA12: {ema12:.2f}\n"
+                        f"EMA26: {ema26:.2f}\n"
+                        f"RSI14: {rsi:.2f}\n"
+                        f"K线数量: {len(ohlcv)} 根 ({trader['main_period']})"
+                    )
+    except Exception as e:
+        market_data_str = f"（行情获取失败: {e}）"
+
+    full_prompt = f"""你是一个专业的加密货币交易分析师。
+请根据以下信息做出交易决策。
 
 【交易员信息】
 名称: {trader["name"]}
@@ -406,14 +460,18 @@ async def start_trader(
 指标配置: {json.dumps(indicators, ensure_ascii=False)}
 策略描述: {strategy.description}
 
-【执行步骤】
-1. 调用行情工具获取 {', '.join(symbols)} 的当前价格和 {trader["main_period"]} K线数据
-2. 根据指标配置计算技术指标
-3. 根据策略描述分析当前市场状态
-4. 做出交易决策（多/空/平仓/持有）
-5. 将决策记录写入 decisions 表
-6. 输出你的分析思路和最终决策
-"""
+【实时行情数据】
+{market_data_str}
+
+【你的任务】
+分析上述行情数据和策略条件，给出交易决策。
+
+请直接输出以下格式的 JSON 结果（不要包含其他内容）:
+{{
+  "signal": "long/short/hold",
+  "confidence": 85,
+  "reason": "你的分析理由（50字以内）"
+}}"""
 
     # 5. 更新状态为 running
     now = datetime.utcnow()
@@ -507,10 +565,24 @@ async def _parse_and_save_decision(db: AsyncSession, trader_id: str, hermes_outp
                 symbols = []
         symbol = symbols[0] if symbols else "BTC-USDT"
 
-        # 从输出中提取信号
+        # 从输出中提取信号：先尝试 JSON 解析
         signal = "hold"
         confidence = 0
         reasoning = hermes_output
+
+        # 尝试提取 JSON 块
+        import re as _re
+        json_match = _re.search(r'\{(?:[^{}]|(?:\{[^{}]*\}))*"signal"(?:[^{}]|(?:\{[^{}]*\}))*\}', hermes_output, _re.DOTALL)
+        if json_match:
+            try:
+                parsed = json.loads(json_match.group())
+                raw_signal = parsed.get("signal", "hold").lower()
+                signal_map = {"long": "long", "buy": "long", "short": "short", "sell": "short", "close": "close", "hold": "hold"}
+                signal = signal_map.get(raw_signal, "hold")
+                confidence = min(float(parsed.get("confidence", 0)), 100)
+                reasoning = parsed.get("reason", hermes_output[:200])
+            except Exception:
+                pass
 
         # 匹配 SIGNAL 行
         m = re.search(r'SIGNAL[:\s]+(long|short|hold|buy|sell|close)', hermes_output, re.IGNORECASE)
