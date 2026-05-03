@@ -139,10 +139,12 @@ configure_hermes() {
 # 警告: 此文件由部署脚本管理，手动修改可能被覆盖
 
 model:
-  default: deepseek-chat
-  provider: deepseek
-  base_url: ""
-providers: {}
+  default: MiniMax-M2.7
+  provider: openai
+providers:
+  openai:
+    api_key: "YOUR_MINIMAX_API_KEY"   # 请替换为实际的 MiniMax API Key
+    base_url: https://api.minimaxi.com/v1
 fallback_providers: []
 credential_pool_strategies: {}
 

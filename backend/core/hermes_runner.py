@@ -212,7 +212,7 @@ async def run_hermes_chat(
         return {"success": False, "output": "", "error": "Hermes Agent 未安装", "exit_code": -1, "thinking_logs": []}
 
     # 构造命令
-    cmd = [binary, "chat", "-q", prompt, "-m", "minimax"]
+    cmd = [binary, "chat", "-q", prompt, "-m", "MiniMax-M2.7", "--provider", "openai"]
 
     logger.info(f"执行 hermes chat (trader={trader_id}): {prompt[:80]}...")
 
