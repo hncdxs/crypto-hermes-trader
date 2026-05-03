@@ -482,34 +482,78 @@ async def start_trader(
     await db.commit()
 
     # 6. 执行 Hermes chat（后台线程，不阻塞 API 响应）
-    import threading
+    # 把所有数据序列化传给线程，避免闭包问题
+    import json as _json
+    import threading as _threading
+
+    # 序列化准备
+    _trader_id = trader_id
+    _exchange_acc_id = exchange_account_id
+    _symbols = symbols
+    _trader_name = trader["name"]
+    _main_period = trader["main_period"]
+    _ref_period = trader["ref_period"]
+    _trade_type = trader["trade_type"]
+    _exchange_info = exchange_info
+    _llm_info = llm_info
+    _strategy_name = strategy.name
+    _indicators = indicators
+    _strategy_desc = strategy.description
+    _market_data_str = market_data_str
 
     def _run_sync():
         """在线程中同步运行 Hermes chat"""
-        try:
-            import asyncio
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                result = loop.run_until_complete(
-                    run_hermes_chat(full_prompt, trader_id=trader_id, timeout=180)
-                )
-                if result["success"] and result.get("output"):
-                    from core.database import async_session_factory
-                    async def _save():
-                        async with async_session_factory() as ndb:
-                            await _parse_and_save_decision(ndb, trader_id, result["output"])
-                    loop2 = asyncio.new_event_loop()
-                    loop2.run_until_complete(_save())
-                    loop2.close()
-            finally:
-                loop.close()
-        except Exception as e:
-            logger.error(f"交易员启动 Hermes 线程异常: {e}", exc_info=True)
+        import asyncio as _asyncio
+        import os as _os
+        from core.hermes_runner import run_hermes_chat, find_hermes, get_env
 
-    thread = threading.Thread(target=_run_sync, daemon=True)
+        # 重新构建 prompt（在线程内，避免闭包变量作用域问题）
+        prompt = f"""你是一个专业的加密货币交易分析师。
+请根据以下信息做出交易决策。
+
+【交易员信息】
+名称: {_trader_name}
+交易对: {', '.join(_symbols) if _symbols else '未设置'}
+主周期: {_main_period}
+参考周期: {_ref_period}
+交易类型: {_trade_type}
+{_exchange_info}
+{_llm_info}
+
+【策略信息】
+名称: {_strategy_name}
+指标配置: {_json.dumps(_indicators, ensure_ascii=False)}
+策略描述: {_strategy_desc}
+
+【实时行情数据】
+{_market_data_str}
+
+【你的任务】
+分析上述行情数据和策略条件，给出交易决策。
+
+请直接输出以下格式的 JSON 结果（不要包含其他内容）:
+{{"signal": "long/short/hold", "confidence": 85, "reason": "你的分析理由（50字以内）"}}"""
+
+        _loop = _asyncio.new_event_loop()
+        _asyncio.set_event_loop(_loop)
+        try:
+            result = _loop.run_until_complete(
+                run_hermes_chat(prompt, trader_id=_trader_id, timeout=180)
+            )
+            if result["success"] and result.get("output"):
+                from core.database import async_session_factory
+                async def _save():
+                    async with async_session_factory() as ndb:
+                        await _parse_and_save_decision(ndb, _trader_id, result["output"])
+                _loop2 = _asyncio.new_event_loop()
+                _loop2.run_until_complete(_save())
+                _loop2.close()
+        finally:
+            _loop.close()
+
+    thread = _threading.Thread(target=_run_sync, daemon=True)
     thread.start()
-    logger.info(f"Hermes 线程已启动 (trader={trader_id})")
+    logger.info(f"Hermes 线程已启动 (trader={_trader_id})")
 
     return {
         "id": trader_id,
