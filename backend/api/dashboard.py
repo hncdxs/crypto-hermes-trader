@@ -7,7 +7,7 @@
 - GET /traders         正在运行的交易员
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Query

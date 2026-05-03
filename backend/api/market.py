@@ -7,7 +7,7 @@ TODO: 对接 OKX MCP 后替换 mock 数据
 """
 
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Query
 
@@ -20,7 +20,7 @@ def _generate_mock_kline(
     limit: int,
 ) -> list[dict]:
     """生成模拟 K 线数据"""
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     interval_map = {
         "1m": timedelta(minutes=1),
         "5m": timedelta(minutes=5),

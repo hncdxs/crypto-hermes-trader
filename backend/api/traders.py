@@ -10,15 +10,17 @@
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import Row
 
 from core.database import get_db
+from core.hermes_runner import run_hermes_chat, get_hermes_status
 
 router = APIRouter()
 
@@ -318,24 +320,114 @@ async def start_trader(
     trader_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """启动交易员（更新状态为 running）
+    """启动交易员 — 通过 Hermes Agent 执行策略
 
-    注意：实际 cron 注册、子代理调度等后续实现，当前仅更新状态字段。
+    核心逻辑：
+      1. 读取交易员关联的策略 prompt
+      2. 读取交易所、LLM 配置
+      3. 构造完整策略 prompt 发送给 hermes chat
+      4. Hermes 调工具拉行情 → 调 LLM 分析 → 做决策 → 写数据库
+      5. 将 Hermes 的输出存入 thinking_logs 表
+      6. 通过 WebSocket 推送实时思维链到前端看板
     """
     trader = await _ensure_trader_exists(db, trader_id)
 
     if trader["status"] == "running":
         return {"id": trader_id, "status": "running", "message": "交易员已在运行中"}
 
-    now = datetime.now(timezone.utc)
+    # 1. 读取策略 prompt
+    strategy_id = trader["strategy_id"]
+    if not strategy_id:
+        raise HTTPException(status_code=400, detail="交易员未关联策略")
+
+    strategy = (await db.execute(
+        text("SELECT name, description, indicators FROM strategies WHERE id = :id"),
+        {"id": strategy_id},
+    )).fetchone()
+
+    if not strategy:
+        raise HTTPException(status_code=404, detail="关联策略不存在")
+
+    # 2. 读取交易所配置
+    exchange_info = ""
+    exchange_account_id = trader["exchange_account_id"]
+    if exchange_account_id:
+        ex = (await db.execute(
+            text("SELECT name, type FROM exchange_accounts WHERE id = :id"),
+            {"id": exchange_account_id},
+        )).fetchone()
+        if ex:
+            exchange_info = f"交易所: {ex.name} ({ex.type})"
+
+    # 3. 读取 LLM 配置
+    llm_info = ""
+    llm_config_id = trader["llm_config_id"]
+    if llm_config_id:
+        llm = (await db.execute(
+            text("SELECT provider, model FROM llm_config WHERE id = :id"),
+            {"id": llm_config_id},
+        )).fetchone()
+        if llm:
+            llm_info = f"AI 模型: {llm.provider}/{llm.model}"
+
+    # 4. 构造完整策略 prompt
+    symbols = trader["symbols"]
+    if isinstance(symbols, str):
+        try:
+            symbols = json.loads(symbols)
+        except (json.JSONDecodeError, TypeError):
+            symbols = []
+
+    indicators = strategy.indicators
+    if isinstance(indicators, str):
+        try:
+            indicators = json.loads(indicators)
+        except (json.JSONDecodeError, TypeError):
+            indicators = []
+
+    full_prompt = f"""你是这个交易系统的 AI 大脑（Hermes Agent）。
+现在需要执行一个交易策略，按以下步骤操作：
+
+【交易员信息】
+名称: {trader["name"]}
+交易对: {', '.join(symbols) if symbols else '未设置'}
+主周期: {trader["main_period"]}
+参考周期: {trader["ref_period"]}
+交易类型: {trader["trade_type"]}
+{exchange_info}
+{llm_info}
+
+【策略信息】
+名称: {strategy.name}
+指标配置: {json.dumps(indicators, ensure_ascii=False)}
+策略描述: {strategy.description}
+
+【执行步骤】
+1. 调用行情工具获取 {', '.join(symbols)} 的当前价格和 {trader["main_period"]} K线数据
+2. 根据指标配置计算技术指标
+3. 根据策略描述分析当前市场状态
+4. 做出交易决策（多/空/平仓/持有）
+5. 将决策记录写入 decisions 表
+6. 输出你的分析思路和最终决策
+"""
+
+    # 5. 更新状态为 running
+    now = datetime.utcnow()
     await db.execute(
-        text(
-            "UPDATE traders SET status = 'running', updated_at = :updated_at WHERE id = :id"
-        ),
+        text("UPDATE traders SET status = 'running', updated_at = :updated_at WHERE id = :id"),
         {"id": trader_id, "updated_at": now},
     )
+    await db.commit()
 
-    return {"id": trader_id, "status": "running"}
+    # 6. 执行 Hermes chat（后台异步，不阻塞返回）
+    import asyncio
+    asyncio.create_task(run_hermes_chat(full_prompt, trader_id=trader_id, timeout=180))
+
+    return {
+        "id": trader_id,
+        "status": "running",
+        "message": "交易员已启动，策略已发送给 Hermes 执行",
+    }
 
 
 @router.post("/{trader_id}/stop")
@@ -345,19 +437,18 @@ async def stop_trader(
 ) -> dict:
     """停止交易员（更新状态为 stopped）
 
-    注意：实际 cron 注销等后续实现，当前仅更新状态字段。
+    后续可扩展：同时取消 Hermes cronjob
     """
     trader = await _ensure_trader_exists(db, trader_id)
 
     if trader["status"] == "stopped":
         return {"id": trader_id, "status": "stopped", "message": "交易员已停止"}
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     await db.execute(
-        text(
-            "UPDATE traders SET status = 'stopped', updated_at = :updated_at WHERE id = :id"
-        ),
+        text("UPDATE traders SET status = 'stopped', updated_at = :updated_at WHERE id = :id"),
         {"id": trader_id, "updated_at": now},
     )
+    await db.commit()
 
     return {"id": trader_id, "status": "stopped"}

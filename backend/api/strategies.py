@@ -10,7 +10,7 @@
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -119,7 +119,7 @@ async def _insert_strategy_version(
             "strategy_id": strategy_id,
             "version": version,
             "content": content,
-            "created_at": datetime.now(timezone.utc),
+            "created_at": datetime.utcnow(),
         },
     )
 
@@ -142,7 +142,7 @@ async def _create_default_agent_configs(
                 "trader_id": trader_id,
                 "agent_type": agent_type,
                 "temperature": temp,
-                "created_at": datetime.now(timezone.utc),
+                "created_at": datetime.utcnow(),
             },
         )
 
@@ -205,7 +205,7 @@ async def create_strategy(
     2. 为每个关联该策略的 trader 自动创建 4 条 agent_config
     """
     strategy_id = str(uuid4())
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     content = _build_content_snapshot(data.name, data.indicators, data.description)
 
     # 1. 插入策略
@@ -301,7 +301,7 @@ async def update_strategy(
     """编辑策略，自动生成新版本（v2, v3...）"""
     strategy = await _ensure_strategy_exists(db, strategy_id)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     new_version = await _next_version(strategy.current_version)
 
     # 构建更新后的字段
@@ -384,7 +384,7 @@ async def clone_strategy(
 ) -> dict:
     """另存副本（新名称，版本从 v1 开始）"""
     strategy = await _ensure_strategy_exists(db, strategy_id)
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
 
     new_id = str(uuid4())
     indicators = strategy.indicators if strategy.indicators else []

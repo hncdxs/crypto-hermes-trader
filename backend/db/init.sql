@@ -127,3 +127,13 @@ CREATE TABLE IF NOT EXISTS plugins (
     config      JSONB DEFAULT '{}',
     created_at  TIMESTAMP DEFAULT NOW()
 );
+
+-- Hermes 思维日志（所有 hermes chat 子进程的输出记录）
+CREATE TABLE IF NOT EXISTS thinking_logs (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    trader_id   VARCHAR(100),                              -- 关联交易员（可为空）
+    prompt      TEXT NOT NULL,                              -- 发送给 Hermes 的 prompt
+    output      TEXT,                                       -- Hermes 的输出
+    exit_code   INTEGER DEFAULT 0,                          -- 子进程退出码
+    created_at  TIMESTAMP DEFAULT NOW()
+);

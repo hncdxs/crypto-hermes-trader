@@ -1,0 +1,143 @@
+/* ═══════════════════════════════════════════════
+   Crypto AI Trader — 暗色终端监控主题
+   背景: #0a0a0f · 卡片: #12121a · 边框: #1e1e2e
+   主色: #6c5ce7 (紫) + #00cec9 (青)
+   ═══════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  background: #0a0a0f;
+  color: #cdd6f4;
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0f;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e1e2e;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #313244;
+}
+
+/* ── Input / Select / Textarea ── */
+input, select, textarea, button {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 13px;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #6c5ce7 !important;
+  box-shadow: 0 0 0 1px rgba(108, 92, 231, 0.25);
+}
+
+/* ── Selection ── */
+::selection {
+  background: rgba(108, 92, 231, 0.35);
+  color: #cdd6f4;
+}
+
+/* ── Links ── */
+a {
+  color: #00cec9;
+  text-decoration: none;
+}
+a:hover {
+  color: #6c5ce7;
+}
+
+/* ── Tables ── */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th {
+  text-align: left;
+  font-weight: 500;
+  color: #585b70;
+  font-size: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #1e1e2e;
+  white-space: nowrap;
+}
+td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #1e1e2e;
+  font-size: 13px;
+  color: #cdd6f4;
+}
+tr:hover td {
+  background: rgba(108, 92, 231, 0.04);
+}
+
+/* ── Animation ── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-slide {
+  animation: slideIn 0.3s ease-out;
+}
+.animate-fade {
+  animation: fadeIn 0.2s ease-out;
+}
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+.animate-blink {
+  animation: blink 1.2s ease-in-out infinite;
+}
+
+/* ── Progress bar ── */
+.progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: #1e1e2e;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
