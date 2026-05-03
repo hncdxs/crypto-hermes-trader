@@ -256,6 +256,50 @@ async def get_running_traders(
     return {"traders": traders}
 
 
+# ──────────── GET /thinking-logs ────────────
+
+
+@router.get("/thinking-logs")
+async def get_thinking_logs(
+    trader_id: str | None = Query(None, description="按交易员筛选"),
+    limit: int = Query(20, ge=1, le=100, description="返回条数"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Hermes 思维链日志"""
+    where = ""
+    params: dict = {}
+
+    if trader_id:
+        where = "WHERE tl.trader_id = :trader_id"
+        params["trader_id"] = trader_id
+
+    sql = text(
+        f"""SELECT tl.id, tl.trader_id, t.name AS trader_name,
+                   tl.prompt, tl.output, tl.exit_code, tl.created_at
+            FROM thinking_logs tl
+            LEFT JOIN traders t ON tl.trader_id = t.id
+            {where}
+            ORDER BY tl.created_at DESC
+            LIMIT :limit"""
+    )
+
+    rows = (await db.execute(sql, {**params, "limit": limit})).fetchall()
+
+    logs = []
+    for r in rows:
+        logs.append({
+            "id": r.id,
+            "trader_id": r.trader_id or "",
+            "trader_name": r.trader_name or "",
+            "prompt": r.prompt[:200] if r.prompt else "",
+            "output": r.output[:2000] if r.output else "",
+            "exit_code": r.exit_code or 0,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        })
+
+    return {"logs": logs}
+
+
 # ──────────── Legacy: 单个 trader 看板 ────────────
 
 

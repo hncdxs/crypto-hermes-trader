@@ -30,22 +30,26 @@ def find_hermes() -> Optional[str]:
     """返回 hermes 可执行文件绝对路径"""
     # 按优先级查找
     candidates = [
-        "hermes",  # 在 PATH 中
         "/usr/local/bin/hermes",
         "/root/.hermes/hermes-agent/venv/bin/hermes",
         os.path.expanduser("~/.hermes/hermes-agent/venv/bin/hermes"),
     ]
     for c in candidates:
-        if "/" in c:
-            if os.path.exists(c) and os.access(c, os.X_OK):
-                return c
-        else:
-            r = subprocess.run(
-                ["which", c],
-                capture_output=True, text=True, timeout=5
-            )
-            if r.returncode == 0 and r.stdout.strip():
-                return r.stdout.strip()
+        if os.path.exists(c) and os.access(c, os.X_OK):
+            return os.path.abspath(c)
+
+    # fallback: which
+    try:
+        r = subprocess.run(
+            ["which", "hermes"], capture_output=True, text=True, timeout=5
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            abs_path = os.path.realpath(r.stdout.strip())
+            if os.path.exists(abs_path) and os.access(abs_path, os.X_OK):
+                return abs_path
+    except Exception:
+        pass
+
     return None
 
 
